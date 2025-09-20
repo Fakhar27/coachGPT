@@ -11,6 +11,13 @@ export interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  model?: string;
+}
+
+interface Model {
+  id: string;
+  name: string;
+  provider: string;
 }
 
 interface ChatAreaProps {
@@ -21,6 +28,8 @@ interface ChatAreaProps {
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   selectedModel: string;
   setSelectedModel: (model: string) => void;
+  models: Model[];
+  isLoading: boolean;
 }
 
 export function ChatArea({
@@ -31,6 +40,8 @@ export function ChatArea({
   handleSubmit,
   selectedModel,
   setSelectedModel,
+  models,
+  isLoading,
 }: ChatAreaProps) {
   const chatContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -41,8 +52,19 @@ export function ChatArea({
   return (
     <div className="flex flex-col h-full">
       <header className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-xl font-bold">{selectedCoach?.name || 'Select a Coach'}</h2>
-        <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
+        <div>
+          <h2 className="text-xl font-bold">{selectedCoach?.name || 'Select a Coach'}</h2>
+          {selectedCoach && (
+            <p className="text-sm text-muted-foreground">{selectedCoach.description}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <ModelSelector 
+            selectedModel={selectedModel} 
+            setSelectedModel={setSelectedModel}
+            models={models}
+          />
+        </div>
       </header>
 
       <div ref={chatContainerRef} className="flex-grow p-6 overflow-y-auto">
@@ -55,11 +77,18 @@ export function ChatArea({
               }`}
             >
               {message.role === 'assistant' && (
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>
-                    {selectedCoach?.name?.charAt(0) || 'C'}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="flex flex-col items-center gap-1">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback>
+                      {selectedCoach?.icon || selectedCoach?.name?.charAt(0) || 'AI'}
+                    </AvatarFallback>
+                  </Avatar>
+                  {message.model && (
+                    <span className="text-xs text-muted-foreground">
+                      {message.model}
+                    </span>
+                  )}
+                </div>
               )}
               <div
                 className={`max-w-[75%] rounded-xl px-4 py-3 text-sm ${
@@ -76,7 +105,13 @@ export function ChatArea({
       </div>
 
       <footer className="p-4 border-t">
-        <MessageInput input={input} setInput={setInput} handleSubmit={handleSubmit} />
+        <MessageInput 
+          input={input} 
+          setInput={setInput} 
+          handleSubmit={handleSubmit}
+          disabled={isLoading || !selectedCoach}
+          placeholder={isLoading ? 'Waiting for response...' : `Message ${selectedCoach?.name || 'a coach'}...`}
+        />
       </footer>
     </div>
   );

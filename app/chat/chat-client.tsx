@@ -5,65 +5,89 @@ import * as React from 'react';
 import { Sidebar, Coach } from '@/components/chat/sidebar';
 import { ChatArea, Message } from '@/components/chat/chat-area';
 
-interface ChatClientProps {
-  coaches: Coach[];
+interface Model {
+  id: string;
+  name: string;
+  provider: string;
 }
 
-export function ChatClient({ coaches }: ChatClientProps) {
+interface ChatClientProps {
+  coaches: Coach[];
+  models: Model[];
+}
+
+export function ChatClient({ coaches, models }: ChatClientProps) {
   const [selectedCoach, setSelectedCoach] = React.useState<Coach | null>(coaches[0] || null);
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [input, setInput] = React.useState('');
   const [selectedModel, setSelectedModel] = React.useState('gpt-4o-mini');
+  const [conversationId, setConversationId] = React.useState<string | null>(null);
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const handleNewChat = () => {
     setMessages([]);
+    setConversationId(null);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || !selectedCoach || isLoading) return;
 
-    const userMessage: Message = { id: Date.now().toString(), role: 'user', content: input };
+    const userMessage: Message = { 
+      id: Date.now().toString(), 
+      role: 'user', 
+      content: input 
+    };
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
+    setIsLoading(true);
 
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      body: JSON.stringify({
-        messages: [...messages, userMessage],
-        model: selectedModel,
-      }),
-    });
+    try {
+      const response = await fetch('/api/cortex', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: input,
+          coachId: selectedCoach.id,
+          coachInstructions: selectedCoach.instructions,
+          model: selectedModel,
+          conversationId: conversationId,
+        }),
+      });
 
-    if (!response.body) return;
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let assistantResponse = '';
-    const assistantMessageId = Date.now().toString();
-
-    // Add a placeholder for the assistant's message
-    setMessages((prev) => [
-      ...prev,
-      { id: assistantMessageId, role: 'assistant', content: '...' },
-    ]);
-
-    reader.read().then(function processText({ done, value }): Promise<void> {
-      if (done) {
-        return Promise.resolve();
+      if (!response.ok) {
+        throw new Error('Failed to get response');
       }
 
-      assistantResponse += decoder.decode(value, { stream: true });
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === assistantMessageId
-            ? { ...msg, content: assistantResponse }
-            : msg
-        )
-      );
+      const data = await response.json();
+      
+      // Update conversation ID for persistence
+      if (data.conversationId) {
+        setConversationId(data.conversationId);
+      }
 
-      return reader.read().then(processText);
-    });
+      // Add assistant message with model info
+      const assistantMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: data.message,
+        model: data.model,
+      };
+      
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error getting response:', error);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -82,6 +106,8 @@ export function ChatClient({ coaches }: ChatClientProps) {
         handleSubmit={handleSubmit}
         selectedModel={selectedModel}
         setSelectedModel={setSelectedModel}
+        models={models}
+        isLoading={isLoading}
       />
     </div>
   );
