@@ -41,27 +41,31 @@ export function ModelSelector({ selectedModel, setSelectedModel, models }: Model
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4" />
-          <span>{selectedModelData?.name || selectedModel}</span>
-          <ChevronDown className="h-4 w-4" />
+        <Button variant="outline" size="sm" className="flex items-center gap-1.5">
+          <Sparkles className="h-3.5 w-3.5" />
+          <span className="max-w-[150px] truncate">
+            {selectedModelData?.name || selectedModel}
+          </span>
+          <ChevronDown className="h-3.5 w-3.5 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-64">
+      <DropdownMenuContent align="end" className="w-64 max-h-[400px] overflow-y-auto">
         <DropdownMenuRadioGroup value={selectedModel} onValueChange={setSelectedModel}>
           {Object.entries(modelsByProvider).map(([provider, providerModels], index) => (
             <React.Fragment key={provider}>
               {index > 0 && <DropdownMenuSeparator />}
-              <DropdownMenuLabel>{provider}</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">
+                {provider}
+              </DropdownMenuLabel>
               {providerModels.map((model) => (
                 <DropdownMenuRadioItem 
                   key={model.id} 
                   value={model.id}
-                  className="pl-6"
+                  className="pl-6 py-1.5"
                 >
-                  <div className="flex flex-col">
-                    <span>{model.name}</span>
-                    <span className="text-xs text-muted-foreground">{model.id}</span>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm">{model.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{model.id}</span>
                   </div>
                 </DropdownMenuRadioItem>
               ))}

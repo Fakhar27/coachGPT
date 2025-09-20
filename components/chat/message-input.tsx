@@ -22,21 +22,23 @@ export function MessageInput({
   placeholder = "Send a message..."
 }: MessageInputProps) {
   return (
-    <form onSubmit={handleSubmit} className="relative">
+    <form onSubmit={handleSubmit} className="flex gap-2">
       <Input
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder={placeholder}
-        className="pr-12 h-12"
+        className="flex-1 h-11"
         disabled={disabled}
+        autoFocus
       />
       <Button 
         type="submit" 
-        size="icon" 
-        className="absolute top-1/2 right-2 -translate-y-1/2"
+        size="default"
+        className="px-3"
         disabled={disabled || !input.trim()}
       >
-        <Send className="h-5 w-5" />
+        <Send className="h-4 w-4 mr-1.5" />
+        Send
       </Button>
     </form>
   );

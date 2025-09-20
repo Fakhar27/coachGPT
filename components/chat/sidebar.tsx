@@ -10,7 +10,9 @@ export interface Coach {
   id: string;
   name: string;
   description: string;
-  icon_url: string | null;
+  instructions?: string;
+  icon?: string;
+  icon_url?: string | null;
 }
 
 interface SidebarProps {
@@ -22,31 +24,40 @@ interface SidebarProps {
 
 export function Sidebar({ coaches, selectedCoach, onCoachSelect, onNewChat }: SidebarProps) {
   return (
-    <div className="flex flex-col h-full p-2 bg-gray-50 dark:bg-gray-900/50 border-r">
-      <Button variant="outline" onClick={onNewChat} className="mb-4">
-        New Chat
-      </Button>
-      <div className="flex-grow overflow-y-auto space-y-2">
-        {coaches.map((coach) => (
-          <Card
-            key={coach.id}
-            onClick={() => onCoachSelect(coach)}
-            className={`cursor-pointer ${
-              selectedCoach?.id === coach.id ? 'border-primary' : ''
-            }`}
-          >
-            <CardHeader className="flex flex-row items-center gap-4 p-4">
-              <div className="p-2 bg-primary/10 rounded-full">
-                {/* Using a generic icon as a placeholder */}
-                <User className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle className="text-base">{coach.name}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0 text-sm text-muted-foreground">
-              {coach.description}
-            </CardContent>
-          </Card>
-        ))}
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900/50 border-r">
+      <div className="flex-shrink-0 p-3 border-b">
+        <Button variant="outline" onClick={onNewChat} className="w-full">
+          New Chat
+        </Button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-3">
+        <div className="space-y-2">
+          {coaches.map((coach) => (
+            <Card
+              key={coach.id}
+              onClick={() => onCoachSelect(coach)}
+              className={`cursor-pointer transition-all hover:shadow-sm ${
+                selectedCoach?.id === coach.id ? 'border-primary bg-primary/5' : ''
+              }`}
+            >
+              <CardHeader className="p-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex-shrink-0 text-2xl">
+                    {coach.icon || '🤝'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-sm font-medium truncate">
+                      {coach.name}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                      {coach.description}
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );

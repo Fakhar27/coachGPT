@@ -91,24 +91,28 @@ export function ChatClient({ coaches, models }: ChatClientProps) {
   };
 
   return (
-    <div className="grid grid-cols-[300px_1fr] h-screen w-full">
-      <Sidebar
-        coaches={coaches}
-        selectedCoach={selectedCoach}
-        onCoachSelect={setSelectedCoach}
-        onNewChat={handleNewChat}
-      />
-      <ChatArea
-        selectedCoach={selectedCoach}
-        messages={messages}
-        input={input}
-        setInput={setInput}
-        handleSubmit={handleSubmit}
-        selectedModel={selectedModel}
-        setSelectedModel={setSelectedModel}
-        models={models}
-        isLoading={isLoading}
-      />
+    <div className="flex h-screen w-full overflow-hidden">
+      <div className="w-[300px] flex-shrink-0">
+        <Sidebar
+          coaches={coaches}
+          selectedCoach={selectedCoach}
+          onCoachSelect={setSelectedCoach}
+          onNewChat={handleNewChat}
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <ChatArea
+          selectedCoach={selectedCoach}
+          messages={messages}
+          input={input}
+          setInput={setInput}
+          handleSubmit={handleSubmit}
+          selectedModel={selectedModel}
+          setSelectedModel={setSelectedModel}
+          models={models}
+          isLoading={isLoading}
+        />
+      </div>
     </div>
   );
 }
