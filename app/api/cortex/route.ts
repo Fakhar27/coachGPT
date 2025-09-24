@@ -23,47 +23,78 @@ export async function POST(request: NextRequest) {
       instructions: coachInstructions || "You are a helpful assistant.",
       store: true, // Always store for persistence
       temperature: 0.7,
+      db_url: process.env.db_url, // PostgreSQL connection for Cortex
       ...(conversationId && { previous_response_id: conversationId })
     };
 
     console.log('Calling Cortex Lambda with:', {
       model: cortexRequest.model,
       hasInstructions: !!cortexRequest.instructions,
-      hasPreviousId: !!conversationId
+      hasPreviousId: !!conversationId,
+      hasDbUrl: !!cortexRequest.db_url
     });
 
-    // Call the Lambda function
-    const response = await fetch(CORTEX_LAMBDA_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(cortexRequest),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Lambda error:', errorText);
-      throw new Error(`Lambda returned ${response.status}: ${errorText}`);
-    }
-
-    const lambdaResponse = await response.json();
+    // Call the Lambda function with extended timeout for cold starts
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
     
-    // Parse the Lambda response body if it's stringified
-    const responseData = typeof lambdaResponse.body === 'string' 
-      ? JSON.parse(lambdaResponse.body)
-      : lambdaResponse;
+    try {
+      const response = await fetch(CORTEX_LAMBDA_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cortexRequest),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
 
-    // Extract the assistant's message and response ID
-    const result = {
-      message: responseData.response || responseData.message || "No response from model",
-      conversationId: responseData.response_id || responseData.id,
-      model: responseData.model || model,
-      usage: responseData.usage || null,
-      execution_time: responseData.execution_time || null
-    };
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Lambda error:', errorText);
+        throw new Error(`Lambda returned ${response.status}: ${errorText}`);
+      }
 
-    return NextResponse.json(result);
+      const lambdaResponse = await response.json();
+      console.log('Raw Lambda response:', JSON.stringify(lambdaResponse, null, 2));
+      
+      // Parse the Lambda response body if it's stringified
+      const responseData = typeof lambdaResponse.body === 'string' 
+        ? JSON.parse(lambdaResponse.body)
+        : lambdaResponse;
+
+      console.log('Parsed response data:', JSON.stringify(responseData, null, 2));
+
+      // Extract the assistant's message from Cortex's response structure
+      let message = "No response from model";
+      
+      // Cortex returns message in: output[0].content[0].text
+      if (responseData.output && responseData.output.length > 0) {
+        const outputMessage = responseData.output[0];
+        if (outputMessage.content && outputMessage.content.length > 0) {
+          message = outputMessage.content[0].text || message;
+        }
+      }
+      
+      const result = {
+        message: message,
+        conversationId: responseData.id, // Cortex uses 'id' for response_id
+        model: responseData.model || model,
+        usage: responseData.usage || null,
+        execution_time: responseData.execution_time || null
+      };
+
+      return NextResponse.json(result);
+      
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        console.error('Lambda request timed out after 60 seconds');
+        throw new Error('Lambda request timed out (cold start). Please try again.');
+      }
+      throw fetchError;
+    }
 
   } catch (error) {
     console.error('Error in Cortex API route:', error);
