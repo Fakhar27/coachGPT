@@ -29,9 +29,10 @@ export default async function ChatPage() {
     { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", provider: "Google" },
     { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", provider: "Google" },
     
-    // Cohere
-    { id: "command-r", name: "Command R", provider: "Cohere" },
-    { id: "command-r-plus", name: "Command R+", provider: "Cohere" }
+    // Cohere (updated to non-deprecated models)
+    { id: "command-r-08-2024", name: "Command R (Aug 2024)", provider: "Cohere" },
+    { id: "command-r-plus-08-2024", name: "Command R+ (Aug 2024)", provider: "Cohere" },
+    { id: "command-a-03-2025", name: "Command A (Mar 2025)", provider: "Cohere" }
   ];
 
   return <ChatClient coaches={coaches || []} models={models} />;
